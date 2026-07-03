@@ -159,8 +159,45 @@
       '<div class="pcard-info"><h3 class="pcard-name">' + p.name + '</h3><div class="pcard-price">' + price + '</div></div>' +
     '</article>';
   }
+  /* ---------- Filtros + paginación (6 por página) ---------- */
+  var filters = document.getElementById('shopFilters');
+  var shopEmpty = document.getElementById('shopEmpty');
+  var shopPages = document.getElementById('shopPages');
+  var PER_PAGE = 6;
+  var curFilter = 'all';
+  var curPage = 1;
+
+  function filtered() {
+    return PRODUCTS.filter(function (p) {
+      if (curFilter === 'all') return true;
+      var t = (p.cats || []).slice();
+      if (p.compare) t.push('ofertas');
+      if (p.badge === 'nuevo') t.push('nuevo');
+      return t.indexOf(curFilter) >= 0;
+    });
+  }
+  function renderPages(pages) {
+    if (!shopPages) return;
+    if (pages <= 1) { shopPages.innerHTML = ''; return; }
+    var h = '<button class="page-btn page-arrow" data-page="prev"' + (curPage === 1 ? ' disabled' : '') + ' aria-label="Anterior">&#8249;</button>';
+    for (var i = 1; i <= pages; i++) h += '<button class="page-btn' + (i === curPage ? ' is-active' : '') + '" data-page="' + i + '">' + i + '</button>';
+    h += '<button class="page-btn page-arrow" data-page="next"' + (curPage === pages ? ' disabled' : '') + ' aria-label="Siguiente">&#8250;</button>';
+    shopPages.innerHTML = h;
+  }
+  function renderShop() {
+    if (!grid) return;
+    var list = filtered();
+    var pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
+    if (curPage > pages) curPage = 1;
+    var start = (curPage - 1) * PER_PAGE;
+    var pageItems = list.slice(start, start + PER_PAGE);
+    grid.innerHTML = pageItems.map(function (p) { return cardHTML(p, PRODUCTS.indexOf(p)); }).join('');
+    if (shopEmpty) shopEmpty.hidden = list.length > 0;
+    renderPages(pages);
+  }
+
   if (grid && PRODUCTS.length) {
-    grid.innerHTML = PRODUCTS.map(cardHTML).join('');
+    renderShop();
     grid.addEventListener('click', function (e) {
       var add = e.target.closest('.pcard-add');
       if (add) { addToCart(parseInt(add.getAttribute('data-id'), 10)); add.classList.remove('added'); void add.offsetWidth; add.classList.add('added'); return; }
@@ -168,21 +205,25 @@
       if (media) openLb(parseInt(media.getAttribute('data-idx'), 10));
     });
   }
-
-  /* ---------- Filtros ---------- */
-  var filters = document.getElementById('shopFilters');
-  var shopEmpty = document.getElementById('shopEmpty');
-  if (filters && grid) {
+  if (filters) {
     filters.addEventListener('click', function (e) {
       var chip = e.target.closest('.chip'); if (!chip) return;
       filters.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('is-active'); });
       chip.classList.add('is-active');
-      var f = chip.getAttribute('data-filter'), any = false;
-      grid.querySelectorAll('.pcard').forEach(function (card) {
-        var show = f === 'all' || card.getAttribute('data-cats').split(' ').indexOf(f) >= 0;
-        card.style.display = show ? '' : 'none'; if (show) any = true;
-      });
-      if (shopEmpty) shopEmpty.hidden = any;
+      curFilter = chip.getAttribute('data-filter'); curPage = 1; renderShop();
+    });
+  }
+  if (shopPages) {
+    shopPages.addEventListener('click', function (e) {
+      var b = e.target.closest('.page-btn'); if (!b || b.disabled) return;
+      var pages = Math.max(1, Math.ceil(filtered().length / PER_PAGE));
+      var p = b.getAttribute('data-page');
+      if (p === 'prev') curPage = Math.max(1, curPage - 1);
+      else if (p === 'next') curPage = Math.min(pages, curPage + 1);
+      else curPage = parseInt(p, 10);
+      renderShop();
+      var sec = document.getElementById('marcos');
+      if (sec) window.scrollTo({ top: sec.getBoundingClientRect().top + window.pageYOffset - 70, behavior: reduce ? 'auto' : 'smooth' });
     });
   }
 

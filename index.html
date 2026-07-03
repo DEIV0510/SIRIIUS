@@ -96,6 +96,15 @@
   <span class="hero-watermark" aria-hidden="true">SIRIIUS</span>
 
   <div class="hero-inner">
+    <!-- FOTO DEL HERO (montura real). Para cambiarla, reemplaza el src
+         por otra de img/frames/ (ej. f6.webp, f13.webp...). -->
+    <div class="hero-visual" data-reveal>
+      <figure class="hero-photo-frame">
+        <img src="img/frames/f15.webp" alt="Montura de la colección Ópticas Siriius" class="hero-photo" loading="eager" />
+        <figcaption>Colección Siriius</figcaption>
+      </figure>
+    </div>
+
     <div class="hero-copy" data-reveal>
       <span class="kicker"><span class="kicker-dot"></span>Óptica · Estilo · Precisión</span>
       <!-- TÍTULO PRINCIPAL -->
@@ -109,15 +118,6 @@
         </a>
         <a href="#lentes" class="btn btn-line">Ver lentes y marcos</a>
       </div>
-    </div>
-
-    <!-- FOTO DEL HERO (montura real). Para cambiarla, reemplaza el src
-         por otra de img/frames/ (ej. f6.webp, f13.webp...). -->
-    <div class="hero-visual" data-reveal>
-      <figure class="hero-photo-frame">
-        <img src="img/frames/f15.webp" alt="Montura de la colección Ópticas Siriius" class="hero-photo" loading="eager" />
-        <figcaption>Colección Siriius</figcaption>
-      </figure>
     </div>
   </div>
 
@@ -325,9 +325,10 @@
       <button class="chip" data-filter="acetato">Acetato</button>
     </div>
 
-    <!-- El grid se rellena desde products.js -->
+    <!-- El grid se rellena desde products.js (paginado de a 6) -->
     <div class="shop-grid" id="shopGrid"></div>
     <p class="shop-empty" id="shopEmpty" hidden>No hay productos en esta categoría.</p>
+    <nav class="shop-pages" id="shopPages" aria-label="Páginas del catálogo"></nav>
   </div>
 </section>
 
