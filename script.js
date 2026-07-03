@@ -222,8 +222,7 @@
       else if (p === 'next') curPage = Math.min(pages, curPage + 1);
       else curPage = parseInt(p, 10);
       renderShop();
-      var sec = document.getElementById('marcos');
-      if (sec) window.scrollTo({ top: sec.getBoundingClientRect().top + window.pageYOffset - 70, behavior: reduce ? 'auto' : 'smooth' });
+      // Se mantiene la posición del scroll (no salta al cambiar de página)
     });
   }
 
