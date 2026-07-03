@@ -125,22 +125,151 @@
     });
   }
 
-  /* ---------- 5b · LIGHTBOX DE LA GALERÍA ---------- */
+  /* ================= TIENDA + CARRITO ================= */
+  var WA = '573156501085';
+  var PRODUCTS = window.SIRIIUS_PRODUCTS || [];
+  function money(n) { return '$' + Number(n).toLocaleString('es-CO'); }
+  function prod(id) { for (var i = 0; i < PRODUCTS.length; i++) { if (PRODUCTS[i].id === id) return PRODUCTS[i]; } return null; }
+
+  /* ---------- Render del grid de productos ---------- */
+  var grid = document.getElementById('shopGrid');
+  function badgeHTML(p) {
+    if (p.compare) { var d = Math.round((1 - p.price / p.compare) * 100); return '<span class="pcard-badge is-sale">-' + d + '%</span>'; }
+    if (p.badge === 'nuevo') return '<span class="pcard-badge">Nuevo</span>';
+    if (p.badge === 'tendencia') return '<span class="pcard-badge">Tendencia</span>';
+    if (p.badge === 'outlet') return '<span class="pcard-badge">Outlet</span>';
+    return '';
+  }
+  function cardHTML(p, i) {
+    var tokens = (p.cats || []).slice();
+    if (p.compare) tokens.push('ofertas');
+    if (p.badge === 'nuevo') tokens.push('nuevo');
+    var colors = p.colors ? '<span class="pcard-colors">' + p.colors + (p.colors > 1 ? ' colores' : ' color') + '</span>' : '';
+    var price = p.compare
+      ? '<span class="was">' + money(p.compare) + '</span><span class="now">' + money(p.price) + '</span>'
+      : '<span class="now">' + money(p.price) + '</span>';
+    return '<article class="pcard" data-cats="' + tokens.join(' ') + '">' +
+      '<div class="pcard-media" data-idx="' + i + '">' +
+        '<img src="' + p.img + '" alt="' + p.name + '" loading="lazy" />' +
+        badgeHTML(p) + colors +
+        '<button class="pcard-add" data-id="' + p.id + '" aria-label="Agregar ' + p.name + ' al carrito">' +
+          '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
+        '</button>' +
+      '</div>' +
+      '<div class="pcard-info"><h3 class="pcard-name">' + p.name + '</h3><div class="pcard-price">' + price + '</div></div>' +
+    '</article>';
+  }
+  if (grid && PRODUCTS.length) {
+    grid.innerHTML = PRODUCTS.map(cardHTML).join('');
+    grid.addEventListener('click', function (e) {
+      var add = e.target.closest('.pcard-add');
+      if (add) { addToCart(parseInt(add.getAttribute('data-id'), 10)); add.classList.remove('added'); void add.offsetWidth; add.classList.add('added'); return; }
+      var media = e.target.closest('.pcard-media');
+      if (media) openLb(parseInt(media.getAttribute('data-idx'), 10));
+    });
+  }
+
+  /* ---------- Filtros ---------- */
+  var filters = document.getElementById('shopFilters');
+  var shopEmpty = document.getElementById('shopEmpty');
+  if (filters && grid) {
+    filters.addEventListener('click', function (e) {
+      var chip = e.target.closest('.chip'); if (!chip) return;
+      filters.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('is-active'); });
+      chip.classList.add('is-active');
+      var f = chip.getAttribute('data-filter'), any = false;
+      grid.querySelectorAll('.pcard').forEach(function (card) {
+        var show = f === 'all' || card.getAttribute('data-cats').split(' ').indexOf(f) >= 0;
+        card.style.display = show ? '' : 'none'; if (show) any = true;
+      });
+      if (shopEmpty) shopEmpty.hidden = any;
+    });
+  }
+
+  /* ---------- Estado del carrito (localStorage) ---------- */
+  var CART_KEY = 'siriius_cart';
+  var cartState = {};
+  try { cartState = JSON.parse(localStorage.getItem(CART_KEY)) || {}; } catch (e) { cartState = {}; }
+  function saveCart() { try { localStorage.setItem(CART_KEY, JSON.stringify(cartState)); } catch (e) {} }
+
+  var cartDrawer = document.getElementById('cart');
+  var cartOverlay = document.getElementById('cartOverlay');
+  var cartItemsEl = document.getElementById('cartItems');
+  var cartFoot = document.getElementById('cartFoot');
+  var cartTotalEl = document.getElementById('cartTotal');
+  var cartCountEl = document.getElementById('cartCount');
+
+  function addToCart(id) { cartState[id] = (cartState[id] || 0) + 1; saveCart(); renderCart(); openCart(); }
+  function setQty(id, q) { if (q <= 0) delete cartState[id]; else cartState[id] = q; saveCart(); renderCart(); }
+
+  function renderCart() {
+    var ids = Object.keys(cartState);
+    var count = ids.reduce(function (s, id) { return s + cartState[id]; }, 0);
+    if (cartCountEl) { cartCountEl.textContent = count; cartCountEl.hidden = count === 0; }
+    if (!cartItemsEl) return;
+    if (!ids.length) {
+      cartItemsEl.innerHTML = '<p class="cart-empty">Tu carrito está vacío.</p>';
+      if (cartFoot) cartFoot.style.display = 'none';
+      if (cartTotalEl) cartTotalEl.textContent = money(0);
+      return;
+    }
+    if (cartFoot) cartFoot.style.display = '';
+    var total = 0;
+    cartItemsEl.innerHTML = ids.map(function (id) {
+      var p = prod(parseInt(id, 10)); if (!p) return ''; var q = cartState[id]; total += p.price * q;
+      return '<div class="cart-row">' +
+        '<img class="cart-row-img" src="' + p.img + '" alt="' + p.name + '" />' +
+        '<div><div class="cart-row-name">' + p.name + '</div><div class="cart-row-price">' + money(p.price) + '</div>' +
+          '<div class="cart-qty"><button data-act="dec" data-id="' + id + '" aria-label="Quitar uno">&minus;</button><span>' + q + '</span><button data-act="inc" data-id="' + id + '" aria-label="Agregar uno">+</button></div>' +
+        '</div>' +
+        '<div class="cart-row-right"><b>' + money(p.price * q) + '</b><button class="cart-row-remove" data-act="rem" data-id="' + id + '">Quitar</button></div>' +
+      '</div>';
+    }).join('');
+    if (cartTotalEl) cartTotalEl.textContent = money(total);
+  }
+  if (cartItemsEl) {
+    cartItemsEl.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-act]'); if (!b) return;
+      var id = parseInt(b.getAttribute('data-id'), 10), act = b.getAttribute('data-act');
+      if (act === 'inc') setQty(id, cartState[id] + 1);
+      else if (act === 'dec') setQty(id, cartState[id] - 1);
+      else if (act === 'rem') setQty(id, 0);
+    });
+  }
+
+  function openCart() { if (!cartDrawer) return; if (cartOverlay) cartOverlay.hidden = false; cartDrawer.classList.add('open'); cartDrawer.setAttribute('aria-hidden', 'false'); requestAnimationFrame(function () { if (cartOverlay) cartOverlay.classList.add('open'); }); document.body.style.overflow = 'hidden'; }
+  function closeCart() { if (!cartDrawer) return; cartDrawer.classList.remove('open'); cartDrawer.setAttribute('aria-hidden', 'true'); if (cartOverlay) cartOverlay.classList.remove('open'); document.body.style.overflow = ''; window.setTimeout(function () { if (cartOverlay) cartOverlay.hidden = true; }, 420); }
+  var cartBtn = document.getElementById('cartBtn');
+  var cartClose = document.getElementById('cartClose');
+  if (cartBtn) cartBtn.addEventListener('click', function () { renderCart(); openCart(); });
+  if (cartClose) cartClose.addEventListener('click', closeCart);
+  if (cartOverlay) cartOverlay.addEventListener('click', closeCart);
+
+  var cartCheckout = document.getElementById('cartCheckout');
+  if (cartCheckout) {
+    cartCheckout.addEventListener('click', function () {
+      var ids = Object.keys(cartState); if (!ids.length) return;
+      var total = 0;
+      var lines = ids.map(function (id) { var p = prod(parseInt(id, 10)); if (!p) return ''; total += p.price * cartState[id]; return '• ' + p.name + ' x' + cartState[id] + ' — ' + money(p.price * cartState[id]); }).filter(Boolean);
+      var text = 'Hola Siriius, quiero hacer este pedido:\n' + lines.join('\n') + '\n\nTotal: ' + money(total);
+      window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(text), '_blank');
+    });
+  }
+  renderCart();
+
+  /* ---------- LIGHTBOX (usa las fotos de los productos) ---------- */
   var lb = document.getElementById('lightbox');
   var lbImg = document.getElementById('lbImg');
-  var items = Array.prototype.slice.call(document.querySelectorAll('#galGrid .gal-item'));
-  var sources = items.map(function (b) { var im = b.querySelector('img'); return { src: im.getAttribute('src'), alt: im.getAttribute('alt') }; });
   var cur = 0;
   function showLb(i) {
-    if (!sources.length) return;
-    cur = (i + sources.length) % sources.length;
-    lbImg.setAttribute('src', sources[cur].src);
-    lbImg.setAttribute('alt', sources[cur].alt);
+    if (!PRODUCTS.length) return;
+    cur = (i + PRODUCTS.length) % PRODUCTS.length;
+    lbImg.setAttribute('src', PRODUCTS[cur].img);
+    lbImg.setAttribute('alt', PRODUCTS[cur].name);
   }
   function openLb(i) { if (!lb) return; showLb(i); lb.classList.add('open'); lb.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden'; }
   function closeLb() { if (!lb) return; lb.classList.remove('open'); lb.setAttribute('aria-hidden', 'true'); document.body.style.overflow = ''; }
   if (lb) {
-    items.forEach(function (b, i) { b.addEventListener('click', function () { openLb(i); }); });
     var lbClose = document.getElementById('lbClose');
     var lbPrev = document.getElementById('lbPrev');
     var lbNext = document.getElementById('lbNext');
@@ -148,13 +277,16 @@
     if (lbPrev) lbPrev.addEventListener('click', function () { showLb(cur - 1); });
     if (lbNext) lbNext.addEventListener('click', function () { showLb(cur + 1); });
     lb.addEventListener('click', function (e) { if (e.target === lb) closeLb(); });
-    document.addEventListener('keydown', function (e) {
-      if (!lb.classList.contains('open')) return;
+  }
+  document.addEventListener('keydown', function (e) {
+    if (lb && lb.classList.contains('open')) {
       if (e.key === 'Escape') closeLb();
       else if (e.key === 'ArrowLeft') showLb(cur - 1);
       else if (e.key === 'ArrowRight') showLb(cur + 1);
-    });
-  }
+    } else if (cartDrawer && cartDrawer.classList.contains('open') && e.key === 'Escape') {
+      closeCart();
+    }
+  });
 
   /* ---------- 6 · AÑO EN EL FOOTER ---------- */
   var yearEl = document.getElementById('year');

@@ -45,6 +45,29 @@ Si tienes un logo nuevo, edita la ruta en `process-logo.js` y ejecuta
 En `styles.css`, arriba, en el bloque `:root` (variables `--ink`, `--paper`,
 `--font-serif`, `--font-sans`, etc.).
 
+## Tienda y carrito de compras
+
+La sección **"Gafas y monturas"** es una tienda con carrito que finaliza el pedido por WhatsApp.
+
+**Editar los productos (precios, nombres, descuentos):**
+Todo está en `products.js`. Cada producto es un bloque como:
+```js
+{ id: 1, name: 'Aura Metal', img: 'img/frames/f1.webp',
+  price: 210000, compare: 280000, colors: 2, badge: 'tendencia',
+  cats: ['clasicos','metal'] }
+```
+- `price` = precio actual · `compare` = precio anterior tachado (si lo pones, aparece el % de descuento).
+- `badge`: `'nuevo'`, `'outlet'` o `'tendencia'` (opcional).
+- `colors`: nº de colores · `cats`: para los filtros (`clasicos`, `modernos`, `metal`, `acetato`).
+- Para **agregar** un producto copia un bloque; para **quitarlo**, bórralo.
+
+**Carrito:** se guarda solo en el navegador del cliente (localStorage) y al pulsar
+*"Finalizar por WhatsApp"* arma el pedido con los productos, cantidades y total, y
+abre WhatsApp al 315 650 1085. (No cobra en línea; confirmas por WhatsApp.)
+
+**Color de las ofertas:** por defecto es negro (estética B&W). Si quieres el rojo típico
+de descuentos, en `styles.css` cambia la variable `--sale` a `#e2121f`.
+
 ## Nota de marca
 El texto de la página usa la ortografía de tu **logo**: **SIRIIUS** / **Ópticas Siriius**.
 Si prefieres otra grafía (p. ej. "Siriuus"), avísame y la cambio en todo el sitio.
